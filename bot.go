@@ -96,7 +96,7 @@ func (bot *SlackBot) Start(url string) (evChan chan interface{}, err error) {
 					}
 					text := bot.prettifyMessage(ev.Text)
 
-					evChan <- &MessageEvent{
+					evChan <- &MessageEvent {
 						Sender:  name,
 						Channel: channel,
 						Text:    text,
@@ -175,24 +175,29 @@ func (bot *SlackBot) prettifyMessage(msg string) string {
 	for _, match := range matches {
 		splits := strings.Split(match, "|")
 		id := splits[0][1:]
-		needle := id[1:3]
+		id = id[1:len(id)-1] // remove the trailing >
+		needle := id[:1]
 
 		if len(splits) == 2 {
 			// username of channel inside the text
 			name := splits[1]
 			name = name[:len(name)-1] // remove the trailing >
 
-			if needle == "#C" {
+			// channels start with C
+			if needle == "C" {
 				msg = strings.Replace(msg, match, "#"+name, -1)
 
-			} else if needle == "@U" {
+			// username starts with U
+			} else if needle == "U" {
 				msg = strings.Replace(msg, match, "@"+name, -1)
 
 			}
 
 		} else if len(splits) == 1 {
 			// need to fetch channel/username
-			if needle == "#C" {
+
+			// channel starts with C
+			if needle == "C" {
 				name, err := bot.getChannelName(id)
 				if err != nil {
 					fmt.Println("Could not get channel name for", id)
@@ -200,7 +205,8 @@ func (bot *SlackBot) prettifyMessage(msg string) string {
 				}
 				msg = strings.Replace(msg, match, "#"+name, -1)
 
-			} else if needle == "@U" {
+			// username starts with U			
+			} else if needle == "U" {
 				name, _, err := bot.getUsername(id)
 				if err != nil {
 					fmt.Println("Could not get username for", id)
