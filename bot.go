@@ -2,6 +2,8 @@ package slackbot
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/nlopes/slack"
@@ -76,6 +78,7 @@ func (bot *SlackBot) Start(url string) (evChan chan interface{}, err error) {
 					ev := msg.Data.(*slack.MessageEvent)
 					name := ""
 					isbot := false
+
 					if ev.Username == "" {
 						name, isbot, err = bot.getUsername(ev.UserId)
 						if err != nil && !isbot {
@@ -91,11 +94,12 @@ func (bot *SlackBot) Start(url string) (evChan chan interface{}, err error) {
 						evChan <- err
 						continue
 					}
+					text := bot.prettifyMessage(ev.Text)
 
 					evChan <- &MessageEvent{
 						Sender:  name,
 						Channel: channel,
-						Text:    ev.Text,
+						Text:    text,
 						IsBot:   isbot,
 					}
 				}
@@ -162,4 +166,50 @@ func (bot *SlackBot) getUsername(userId string) (name string, isbot bool, err er
 	bot.userMap[userId] = info.Name
 	name = info.Name
 	return
+}
+
+func (bot *SlackBot) prettifyMessage(msg string) string {
+	re := regexp.MustCompile("<(.*?)>")
+	matches := re.FindAllString(msg, -1)
+
+	for _, match := range matches {
+		splits := strings.Split(match, "|")
+		id := splits[0][1:]
+		needle := id[1:3]
+
+		if len(splits) == 2 {
+			// username of channel inside the text
+			name := splits[1]
+			name = name[:len(name)-1] // remove the trailing >
+
+			if needle == "#C" {
+				msg = strings.Replace(msg, match, "#"+name, -1)
+
+			} else if needle == "@U" {
+				msg = strings.Replace(msg, match, "@"+name, -1)
+
+			}
+
+		} else if len(splits) == 1 {
+			// need to fetch channel/username
+			if needle == "#C" {
+				name, err := bot.getChannelName(id)
+				if err != nil {
+					fmt.Println("Could not get channel name for", id)
+					continue
+				}
+				msg = strings.Replace(msg, match, "#"+name, -1)
+
+			} else if needle == "@U" {
+				name, _, err := bot.getUsername(id)
+				if err != nil {
+					fmt.Println("Could not get username for", id)
+					continue
+				}
+				msg = strings.Replace(msg, match, "@"+name, -1)
+			}
+		}
+	}
+
+	return msg
 }
