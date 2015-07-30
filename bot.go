@@ -15,7 +15,7 @@ type SlackBot struct {
 
 	token string
 	api   *slack.Slack
-	wsAPI *slack.SlackWS
+	wsAPI *slack.WS
 
 	// Send Outgoing messages easily
 	chSender chan slack.OutgoingMessage
@@ -80,7 +80,7 @@ func (bot *SlackBot) Start(url string) (evChan chan interface{}, err error) {
 					isbot := false
 
 					if ev.Username == "" {
-						name, isbot, err = bot.getUsername(ev.UserId)
+						name, isbot, err = bot.getUsername(ev.User)
 						if err != nil && !isbot {
 							evChan <- err
 							continue
@@ -89,14 +89,14 @@ func (bot *SlackBot) Start(url string) (evChan chan interface{}, err error) {
 						name = ev.Username
 					}
 
-					channel, err := bot.getChannelName(ev.ChannelId)
+					channel, err := bot.getChannelName(ev.Channel)
 					if err != nil {
 						evChan <- err
 						continue
 					}
 					text := bot.prettifyMessage(ev.Text)
 
-					evChan <- &MessageEvent {
+					evChan <- &MessageEvent{
 						Sender:  name,
 						Channel: channel,
 						Text:    text,
@@ -175,7 +175,7 @@ func (bot *SlackBot) prettifyMessage(msg string) string {
 	for _, match := range matches {
 		splits := strings.Split(match, "|")
 		id := splits[0][1:]
-		id = id[1:len(id)-1] // remove the trailing >
+		id = id[1 : len(id)-1] // remove the trailing >
 		needle := id[:1]
 
 		if len(splits) == 2 {
@@ -187,7 +187,7 @@ func (bot *SlackBot) prettifyMessage(msg string) string {
 			if needle == "C" {
 				msg = strings.Replace(msg, match, "#"+name, -1)
 
-			// username starts with U
+				// username starts with U
 			} else if needle == "U" {
 				msg = strings.Replace(msg, match, "@"+name, -1)
 
@@ -205,7 +205,7 @@ func (bot *SlackBot) prettifyMessage(msg string) string {
 				}
 				msg = strings.Replace(msg, match, "#"+name, -1)
 
-			// username starts with U			
+				// username starts with U
 			} else if needle == "U" {
 				name, _, err := bot.getUsername(id)
 				if err != nil {

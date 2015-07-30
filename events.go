@@ -1,6 +1,7 @@
 package slackbot
 
 type (
+	Event interface{}
 	// Sucessfully Connected Event
 	HelloEvent struct {
 	}
