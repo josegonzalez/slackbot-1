@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/nlopes/slack"
 	logging "github.com/op/go-logging"
@@ -13,14 +12,12 @@ import (
 type SlackBot struct {
 	log *logging.Logger
 
-	token string
-	api   *slack.Slack
-	wsAPI *slack.WS
+	token  string
+	api    *slack.Client
+	rtmAPI *slack.RTM
 
 	// Send Outgoing messages easily
 	chSender chan slack.OutgoingMessage
-	// Get events from Slack api
-	chRecv chan slack.SlackEvent
 
 	channelMap map[string]string
 	userMap    map[string]string
@@ -35,7 +32,6 @@ func New(token string) *SlackBot {
 		token:      token,
 		api:        slack.New(token),
 		chSender:   make(chan slack.OutgoingMessage),
-		chRecv:     make(chan slack.SlackEvent),
 		channelMap: make(map[string]string),
 		userMap:    make(map[string]string),
 	}
@@ -51,13 +47,8 @@ func (bot *SlackBot) SetDebug(debug bool) {
 }
 
 func (bot *SlackBot) Start(url string) (evChan chan interface{}, err error) {
-	bot.wsAPI, err = bot.api.StartRTM("", url)
-	if err != nil {
-		return nil, err
-	}
-
-	go bot.wsAPI.HandleIncomingEvents(bot.chRecv)
-	go bot.wsAPI.Keepalive(20 * time.Second)
+	bot.rtmAPI = bot.api.NewRTM()
+	go bot.rtmAPI.ManageConnection()
 
 	go bot.outgoingSink()
 
@@ -67,10 +58,10 @@ func (bot *SlackBot) Start(url string) (evChan chan interface{}, err error) {
 		bot.log.Info("Starting event loop")
 		for {
 			select {
-			case msg := <-bot.chRecv:
+			case msg := <-bot.rtmAPI.IncomingEvents:
 				switch msg.Data.(type) {
 
-				case slack.HelloEvent:
+				case *slack.HelloEvent:
 					bot.log.Info("Connected to server")
 					evChan <- &HelloEvent{}
 
@@ -122,7 +113,7 @@ func (bot *SlackBot) outgoingSink() {
 	for {
 		select {
 		case msg := <-bot.chSender:
-			bot.wsAPI.SendMessage(&msg)
+			bot.rtmAPI.SendMessage(&msg)
 		}
 	}
 }
