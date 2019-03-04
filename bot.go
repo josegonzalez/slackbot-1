@@ -103,7 +103,8 @@ func (bot *SlackBot) Start(url string) (evChan chan interface{}, err error) {
 }
 
 func (bot *SlackBot) SendMessage(from, channel, text string) {
-	bot.api.PostMessage(channel, slack.MsgOptionText(text, false), slack.MsgOptionUsername(from))
+	iconURL := fmt.Sprintf("https://api.adorable.io/avatars/48/%s", from)
+	bot.api.PostMessage(channel, slack.MsgOptionText(text, false), slack.MsgOptionUsername(from), slack.MsgOptionIconURL(iconURL))
 }
 
 func (bot *SlackBot) outgoingSink() {
