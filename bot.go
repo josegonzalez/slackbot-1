@@ -38,7 +38,8 @@ func New(token string) *SlackBot {
 }
 
 func (bot *SlackBot) SetDebug(debug bool) {
-	bot.api.OptionDebug(debug)
+	fn := slack.OptionDebug(debug)
+	fn(bot.api)
 	if debug {
 		logging.SetLevel(logging.INFO, "slackbot")
 	} else {
