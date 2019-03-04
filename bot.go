@@ -38,7 +38,7 @@ func New(token string) *SlackBot {
 }
 
 func (bot *SlackBot) SetDebug(debug bool) {
-	bot.api.SetDebug(debug)
+	bot.api.OptionDebug(debug)
 	if debug {
 		logging.SetLevel(logging.INFO, "slackbot")
 	} else {
@@ -102,11 +102,7 @@ func (bot *SlackBot) Start(url string) (evChan chan interface{}, err error) {
 }
 
 func (bot *SlackBot) SendMessage(from, channel, text string) {
-	params := slack.PostMessageParameters{
-		Text:     text,
-		Username: from,
-	}
-	bot.api.PostMessage(channel, text, params)
+	bot.api.PostMessage(channel, slack.MsgOptionText("Hello World!", false), slack.MsgOptionUsername(from))
 }
 
 func (bot *SlackBot) outgoingSink() {
