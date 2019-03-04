@@ -103,7 +103,7 @@ func (bot *SlackBot) Start(url string) (evChan chan interface{}, err error) {
 }
 
 func (bot *SlackBot) SendMessage(from, channel, text string) {
-	bot.api.PostMessage(channel, slack.MsgOptionText("Hello World!", false), slack.MsgOptionUsername(from))
+	bot.api.PostMessage(channel, slack.MsgOptionText(text, false), slack.MsgOptionUsername(from))
 }
 
 func (bot *SlackBot) outgoingSink() {
